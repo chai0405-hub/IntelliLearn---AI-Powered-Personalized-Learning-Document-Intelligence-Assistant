@@ -1,7 +1,9 @@
+import time
 import streamlit as st
 
 from utils.auth import (
     is_logged_in,
+    resend_signup_otp,
     sign_in_with_username,
     sign_up,
     verify_signup_otp,
@@ -15,13 +17,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+RESEND_COOLDOWN_SECONDS = 60
+
 # ------------------------------------------------------------
 # Session state
 # ------------------------------------------------------------
 if "auth_view" not in st.session_state:
     st.session_state.auth_view = "signin"
 
-# If a user is already authenticated, take them straight to the dashboard.
 if is_logged_in():
     st.switch_page("pages/1_Dashboard.py")
 
@@ -31,12 +34,10 @@ if is_logged_in():
 st.markdown(
     """
     <style>
-        /* Hide the multipage sidebar before login */
         section[data-testid="stSidebar"] {
             display: none;
         }
 
-        /* Cleaner app background */
         .stApp {
             background:
                 radial-gradient(circle at 15% 10%, rgba(37, 99, 235, 0.12), transparent 28%),
@@ -114,7 +115,6 @@ st.markdown(
             font-size: 28px;
         }
 
-        /* Softer card borders */
         div[data-testid="stVerticalBlockBorderWrapper"] {
             border-radius: 22px;
             border-color: #e2e8f0;
@@ -122,7 +122,6 @@ st.markdown(
             background: rgba(255, 255, 255, 0.97);
         }
 
-        /* Input polish */
         div[data-baseweb="input"] > div {
             border-radius: 12px;
         }
@@ -134,7 +133,6 @@ st.markdown(
             font-weight: 650;
         }
 
-        /* Keep toolbar visually quiet */
         header[data-testid="stHeader"] {
             background: transparent;
         }
@@ -144,7 +142,7 @@ st.markdown(
 )
 
 # ------------------------------------------------------------
-# Header / Brand
+# Brand
 # ------------------------------------------------------------
 st.markdown(
     """
@@ -159,7 +157,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Centered authentication card
 left_space, auth_col, right_space = st.columns([1.15, 1.35, 1.15])
 
 with auth_col:
@@ -209,7 +206,7 @@ with auth_col:
                         if "Email not confirmed" in message:
                             st.warning(
                                 "Your email has not been verified yet. "
-                                "Create the account again if you need a new verification code."
+                                "Use the verification code sent to your email."
                             )
                         else:
                             st.error(f"Sign in failed: {message}")
@@ -219,6 +216,7 @@ with auth_col:
                 "<div style='text-align:center;color:#64748b;'>New to IntelliLearn?</div>",
                 unsafe_allow_html=True,
             )
+
             if st.button(
                 "Create an account",
                 use_container_width=True,
@@ -297,6 +295,7 @@ with auth_col:
                 else:
                     try:
                         clean_email = email.strip().lower()
+
                         sign_up(
                             full_name.strip(),
                             username.strip(),
@@ -304,10 +303,8 @@ with auth_col:
                             password,
                         )
 
-                        # Store only what is needed for the verification screen.
                         st.session_state.pending_verification_email = clean_email
-
-                        # Verification page appears ONLY after successful signup.
+                        st.session_state.verification_sent_at = time.time()
                         st.session_state.auth_view = "verify"
                         st.rerun()
 
@@ -319,6 +316,7 @@ with auth_col:
                 "<div style='text-align:center;color:#64748b;'>Already have an account?</div>",
                 unsafe_allow_html=True,
             )
+
             if st.button(
                 "Back to sign in",
                 use_container_width=True,
@@ -336,8 +334,6 @@ with auth_col:
                 "",
             )
 
-            # If somebody somehow reaches this state without first registering,
-            # return them to the registration page.
             if not pending_email:
                 st.session_state.auth_view = "register"
                 st.rerun()
@@ -349,7 +345,7 @@ with auth_col:
                     Verify your email
                 </div>
                 <div class="auth-copy" style="text-align:center;">
-                    We sent a verification code to your email address.
+                    Enter the latest verification code sent to your email.
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -361,7 +357,7 @@ with auth_col:
                 verification_code = st.text_input(
                     "Verification code",
                     placeholder="Enter the code from your email",
-                    help="Use the latest verification code you received.",
+                    help="If you resend a code, always use the newest code.",
                 )
 
                 verify_clicked = st.form_submit_button(
@@ -380,10 +376,12 @@ with auth_col:
                             verification_code.strip(),
                         )
 
-                        # verify_signup_otp stores the logged-in user when
-                        # Supabase returns a session.
                         st.session_state.pop(
                             "pending_verification_email",
+                            None,
+                        )
+                        st.session_state.pop(
+                            "verification_sent_at",
                             None,
                         )
 
@@ -398,10 +396,55 @@ with auth_col:
                     except Exception as exc:
                         st.error(
                             f"Verification failed: {exc}. "
-                            "Please make sure you are using the latest code."
+                            "If the code expired, use 'Resend verification code' below."
                         )
 
+            # ------------------------------------------------
+            # Resend verification code
+            # ------------------------------------------------
+            sent_at = float(
+                st.session_state.get("verification_sent_at", 0)
+            )
+            elapsed = time.time() - sent_at if sent_at else RESEND_COOLDOWN_SECONDS
+
+            st.caption(
+                "Didn't receive the email, or did the code expire? "
+                "You can request a new verification code."
+            )
+
+            if st.button(
+                "Resend verification code",
+                use_container_width=True,
+                key="resend_verification_code",
+            ):
+                remaining = RESEND_COOLDOWN_SECONDS - (
+                    time.time()
+                    - float(
+                        st.session_state.get(
+                            "verification_sent_at",
+                            0,
+                        )
+                    )
+                )
+
+                if remaining > 0:
+                    st.info(
+                        f"Please wait about {int(remaining) + 1} seconds "
+                        "before requesting another code."
+                    )
+                else:
+                    try:
+                        resend_signup_otp(pending_email)
+                        st.session_state.verification_sent_at = time.time()
+                        st.success(
+                            "A new verification code has been sent. "
+                            "Please use the latest code from your inbox."
+                        )
+                    except Exception as exc:
+                        st.error(f"Could not resend verification code: {exc}")
+
             st.divider()
+
             if st.button(
                 "Back to sign in",
                 use_container_width=True,
@@ -410,9 +453,6 @@ with auth_col:
                 st.session_state.auth_view = "signin"
                 st.rerun()
 
-# ------------------------------------------------------------
-# Small footer
-# ------------------------------------------------------------
 st.markdown(
     """
     <div class="mini-note">
