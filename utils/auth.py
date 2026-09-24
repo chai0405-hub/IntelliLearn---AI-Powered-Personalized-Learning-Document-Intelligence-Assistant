@@ -53,6 +53,20 @@ def sign_up(full_name: str, username: str, email: str, password: str):
     )
 
 
+def resend_signup_otp(email: str):
+    """
+    Resend the signup confirmation / verification OTP for an email
+    that already has a pending signup request.
+    """
+    supabase = get_supabase()
+    return supabase.auth.resend(
+        {
+            "type": "signup",
+            "email": email.strip().lower(),
+        }
+    )
+
+
 def verify_signup_otp(email: str, token: str):
     supabase = get_supabase()
     response = supabase.auth.verify_otp(
@@ -62,8 +76,10 @@ def verify_signup_otp(email: str, token: str):
             "type": "email",
         }
     )
+
     if getattr(response, "user", None):
         set_logged_in_user(response)
+
     return response
 
 
@@ -120,6 +136,9 @@ def logout():
         "chat_messages",
         "generated_quiz",
         "flashcards",
+        "pending_verification_email",
+        "verification_sent_at",
+        "auth_view",
     ]:
         st.session_state.pop(key, None)
 
@@ -128,7 +147,9 @@ def render_sidebar():
     with st.sidebar:
         st.markdown("## IntelliLearn")
         if is_logged_in():
-            st.caption(f"Signed in as **{st.session_state.get('username', 'student')}**")
+            st.caption(
+                f"Signed in as **{st.session_state.get('username', 'student')}**"
+            )
             st.page_link("pages/1_Dashboard.py", label="Dashboard")
             st.page_link("pages/2_My_Documents.py", label="My Documents")
             st.page_link("pages/3_Ask_IntelliLearn.py", label="Ask IntelliLearn")
@@ -137,6 +158,7 @@ def render_sidebar():
             st.page_link("pages/6_Study_Plan.py", label="Study Plan")
             st.page_link("pages/7_Progress.py", label="Progress")
             st.divider()
+
             if st.button("Sign out", use_container_width=True):
                 logout()
                 st.switch_page("app.py")
