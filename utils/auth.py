@@ -1,164 +1,675 @@
 import re
+
 import streamlit as st
-from utils.supabase_client import get_supabase
+
+from utils.supabase_client import (
+    get_supabase,
+)
 
 
-USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]{3,30}$")
+# ============================================================
+# USERNAME VALIDATION
+# ============================================================
+
+USERNAME_RE = re.compile(
+    r"^[a-zA-Z0-9_]{3,30}$"
+)
 
 
-def normalize_username(username: str) -> str:
-    return username.strip().lower()
+def normalize_username(
+    username: str
+) -> str:
+
+    return (
+        username
+        .strip()
+        .lower()
+    )
 
 
-def valid_username(username: str) -> bool:
-    return bool(USERNAME_RE.fullmatch(username.strip()))
+def valid_username(
+    username: str
+) -> bool:
+
+    return bool(
+        USERNAME_RE.fullmatch(
+            username.strip()
+        )
+    )
 
 
-def set_logged_in_user(auth_response) -> None:
-    user = getattr(auth_response, "user", None)
+# ============================================================
+# LOAD USER PROFILE INTO SESSION
+# ============================================================
+
+def set_logged_in_user(
+    auth_response
+) -> None:
+
+    user = getattr(
+        auth_response,
+        "user",
+        None,
+    )
+
     if user is None:
-        raise ValueError("Authentication succeeded but no user was returned.")
+
+        raise ValueError(
+            "Authentication succeeded "
+            "but no user was returned."
+        )
 
     supabase = get_supabase()
+
     profile_response = (
-        supabase.table("profiles")
-        .select("id, full_name, username, email")
-        .eq("id", str(user.id))
+        supabase
+        .table(
+            "profiles"
+        )
+        .select(
+            "id, full_name, username, email"
+        )
+        .eq(
+            "id",
+            str(user.id),
+        )
         .maybe_single()
         .execute()
     )
-    profile = profile_response.data or {}
 
-    st.session_state.user_id = str(user.id)
-    st.session_state.user_email = getattr(user, "email", "") or profile.get("email", "")
-    st.session_state.full_name = profile.get("full_name", "Student")
-    st.session_state.username = profile.get("username", "")
+    profile = (
+        profile_response.data
+        or {}
+    )
 
+    st.session_state.user_id = (
+        str(user.id)
+    )
 
-def sign_up(full_name: str, username: str, email: str, password: str):
-    supabase = get_supabase()
-    username = normalize_username(username)
+    st.session_state.user_email = (
+        getattr(
+            user,
+            "email",
+            "",
+        )
+        or
+        profile.get(
+            "email",
+            "",
+        )
+    )
 
-    return supabase.auth.sign_up(
-        {
-            "email": email.strip().lower(),
-            "password": password,
-            "options": {
-                "data": {
-                    "full_name": full_name.strip(),
-                    "username": username,
-                }
-            },
-        }
+    st.session_state.full_name = (
+        profile.get(
+            "full_name",
+            "Student",
+        )
+    )
+
+    st.session_state.username = (
+        profile.get(
+            "username",
+            "",
+        )
     )
 
 
-def resend_signup_otp(email: str):
-    """
-    Resend the signup confirmation / verification OTP for an email
-    that already has a pending signup request.
-    """
-    supabase = get_supabase()
-    return supabase.auth.resend(
-        {
-            "type": "signup",
-            "email": email.strip().lower(),
-        }
+# ============================================================
+# SIGN UP
+# ============================================================
+
+def sign_up(
+    full_name: str,
+    username: str,
+    email: str,
+    password: str,
+):
+
+    supabase = (
+        get_supabase()
     )
 
+    response = (
+        supabase
+        .auth
+        .sign_up(
+            {
+                "email":
+                    email
+                    .strip()
+                    .lower(),
 
-def verify_signup_otp(email: str, token: str):
-    supabase = get_supabase()
-    response = supabase.auth.verify_otp(
-        {
-            "email": email.strip().lower(),
-            "token": token.strip(),
-            "type": "email",
-        }
+                "password":
+                    password,
+
+                "options":
+                    {
+                        "data":
+                            {
+                                "full_name":
+                                    full_name
+                                    .strip(),
+
+                                "username":
+                                    normalize_username(
+                                        username
+                                    ),
+                            }
+                    },
+            }
+        )
     )
-
-    if getattr(response, "user", None):
-        set_logged_in_user(response)
 
     return response
 
 
-def sign_in_with_username(username_or_email: str, password: str):
-    supabase = get_supabase()
-    identifier = username_or_email.strip().lower()
+# ============================================================
+# RESEND EMAIL VERIFICATION CODE
+# ============================================================
+
+def resend_signup_otp(
+    email: str
+):
+
+    supabase = (
+        get_supabase()
+    )
+
+    return (
+        supabase
+        .auth
+        .resend(
+            {
+                "type":
+                    "signup",
+
+                "email":
+                    email
+                    .strip()
+                    .lower(),
+            }
+        )
+    )
+
+
+# ============================================================
+# VERIFY EMAIL
+# ============================================================
+
+def verify_signup_otp(
+    email: str,
+    token: str,
+):
+
+    supabase = (
+        get_supabase()
+    )
+
+    response = (
+        supabase
+        .auth
+        .verify_otp(
+            {
+                "email":
+                    email
+                    .strip()
+                    .lower(),
+
+                "token":
+                    token
+                    .strip(),
+
+                "type":
+                    "email",
+            }
+        )
+    )
+
+    if getattr(
+        response,
+        "user",
+        None,
+    ):
+
+        set_logged_in_user(
+            response
+        )
+
+    return response
+
+
+# ============================================================
+# LOGIN WITH USERNAME OR EMAIL
+# ============================================================
+
+def sign_in_with_username(
+    username_or_email: str,
+    password: str,
+):
+
+    supabase = (
+        get_supabase()
+    )
+
+    identifier = (
+        username_or_email
+        .strip()
+        .lower()
+    )
+
+    # --------------------------------------------------------
+    # EMAIL LOGIN
+    # --------------------------------------------------------
 
     if "@" in identifier:
+
         email = identifier
+
+    # --------------------------------------------------------
+    # USERNAME LOGIN
+    # --------------------------------------------------------
+
     else:
-        lookup = supabase.rpc(
-            "get_email_for_username",
-            {"p_username": normalize_username(identifier)},
-        ).execute()
+
+        lookup = (
+            supabase
+            .rpc(
+                "get_email_for_username",
+                {
+                    "p_username":
+                        normalize_username(
+                            identifier
+                        )
+                },
+            )
+            .execute()
+        )
 
         email = lookup.data
-        if not email:
-            raise ValueError("Username not found.")
 
-    response = supabase.auth.sign_in_with_password(
-        {
-            "email": email,
-            "password": password,
-        }
+        if not email:
+
+            raise ValueError(
+                "Username not found."
+            )
+
+    response = (
+        supabase
+        .auth
+        .sign_in_with_password(
+            {
+                "email":
+                    email,
+
+                "password":
+                    password,
+            }
+        )
     )
-    set_logged_in_user(response)
+
+    set_logged_in_user(
+        response
+    )
+
     return response
 
 
-def is_logged_in() -> bool:
-    return bool(st.session_state.get("user_id"))
+# ============================================================
+# LOGIN STATUS
+# ============================================================
 
+def is_logged_in() -> bool:
+
+    return bool(
+        st.session_state.get(
+            "user_id"
+        )
+    )
+
+
+# ============================================================
+# PROTECT PRIVATE PAGES
+# ============================================================
 
 def require_auth():
+
     if not is_logged_in():
-        st.warning("Please sign in first.")
-        if st.button("Go to Login"):
-            st.switch_page("app.py")
+
+        st.warning(
+            "Please sign in first."
+        )
+
         st.stop()
 
 
+# ============================================================
+# LOGOUT
+# ============================================================
+
 def logout():
+
     try:
+
         get_supabase().auth.sign_out()
+
     except Exception:
+
         pass
 
-    for key in [
+    session_keys = [
         "user_id",
         "user_email",
         "full_name",
         "username",
         "supabase_client",
+        "gemini_client",
         "chat_messages",
         "generated_quiz",
+        "generated_quiz_topic",
         "flashcards",
         "pending_verification_email",
         "verification_sent_at",
         "auth_view",
-    ]:
-        st.session_state.pop(key, None)
+        "latest_study_plan",
+        "selected_document_id",
+    ]
 
+    for key in session_keys:
+
+        st.session_state.pop(
+            key,
+            None,
+        )
+
+
+# ============================================================
+# CUSTOM SIDEBAR
+# ============================================================
 
 def render_sidebar():
-    with st.sidebar:
-        st.markdown("## IntelliLearn")
-        if is_logged_in():
-            st.caption(
-                f"Signed in as **{st.session_state.get('username', 'student')}**"
-            )
-            st.page_link("pages/1_Dashboard.py", label="Dashboard")
-            st.page_link("pages/2_My_Documents.py", label="My Documents")
-            st.page_link("pages/3_Ask_IntelliLearn.py", label="Ask IntelliLearn")
-            st.page_link("pages/4_Quiz.py", label="Quiz")
-            st.page_link("pages/5_Flashcards.py", label="Flashcards")
-            st.page_link("pages/6_Study_Plan.py", label="Study Plan")
-            st.page_link("pages/7_Progress.py", label="Progress")
-            st.divider()
 
-            if st.button("Sign out", use_container_width=True):
-                logout()
-                st.switch_page("app.py")
+    # --------------------------------------------------------
+    # SIDEBAR CSS
+    # --------------------------------------------------------
+
+    st.markdown(
+        """
+        <style>
+
+        section[
+            data-testid="stSidebar"
+        ] {
+
+            background:
+                linear-gradient(
+                    180deg,
+                    #181326 0%,
+                    #211936 50%,
+                    #171221 100%
+                ) !important;
+
+            border-right:
+                1px solid
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.07
+                );
+        }
+
+
+        section[
+            data-testid="stSidebar"
+        ]
+        [
+            data-testid="stSidebarUserContent"
+        ] {
+
+            padding-top:
+                1.25rem;
+        }
+
+
+        section[
+            data-testid="stSidebar"
+        ] h2 {
+
+            color:
+                white !important;
+
+            font-size:
+                1.65rem !important;
+
+            font-weight:
+                850 !important;
+
+            letter-spacing:
+                -0.035em;
+        }
+
+
+        section[
+            data-testid="stSidebar"
+        ] p {
+
+            color:
+                #BBB5CB;
+        }
+
+
+        section[
+            data-testid="stSidebar"
+        ]
+        [
+            data-testid="stPageLink"
+        ] {
+
+            border-radius:
+                12px;
+
+            margin-bottom:
+                0.2rem;
+        }
+
+
+        section[
+            data-testid="stSidebar"
+        ]
+        [
+            data-testid="stPageLink"
+        ] p {
+
+            color:
+                #F8FAFC !important;
+
+            font-weight:
+                560;
+        }
+
+
+        section[
+            data-testid="stSidebar"
+        ]
+        [
+            data-testid="stPageLink"
+        ]:hover {
+
+            background:
+                rgba(
+                    124,
+                    58,
+                    237,
+                    0.18
+                );
+        }
+
+
+        section[
+            data-testid="stSidebar"
+        ] hr {
+
+            border-color:
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.12
+                ) !important;
+        }
+
+
+        section[
+            data-testid="stSidebar"
+        ]
+        .stButton
+        > button {
+
+            min-height:
+                44px;
+
+            border-radius:
+                12px;
+
+            border:
+                none;
+
+            color:
+                white;
+
+            font-weight:
+                700;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #7C3AED,
+                    #4F46E5
+                );
+        }
+
+
+        section[
+            data-testid="stSidebar"
+        ]
+        .stButton
+        > button:hover {
+
+            color:
+                white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #8B5CF6,
+                    #6366F1
+                );
+        }
+
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # --------------------------------------------------------
+    # SIDEBAR CONTENT
+    # --------------------------------------------------------
+
+    with st.sidebar:
+
+        st.markdown(
+            "## IntelliLearn"
+        )
+
+        full_name = (
+            st.session_state.get(
+                "full_name",
+                "",
+            )
+        )
+
+        username = (
+            st.session_state.get(
+                "username",
+                "student",
+            )
+        )
+
+        if full_name:
+
+            st.caption(
+                "Welcome, "
+                f"**{full_name}**"
+            )
+
+        st.caption(
+            "Signed in as "
+            f"**{username}**"
+        )
+
+        st.divider()
+
+        # ----------------------------------------------------
+        # NAVIGATION LINKS
+        # ----------------------------------------------------
+
+        st.page_link(
+            "views/1_Dashboard.py",
+            label="Dashboard",
+            icon=":material/dashboard:",
+        )
+
+
+        st.page_link(
+            "views/2_My_Documents.py",
+            label="My Documents",
+            icon=":material/folder:",
+        )
+
+
+        st.page_link(
+            "views/3_Ask_IntelliLearn.py",
+            label="Ask IntelliLearn",
+            icon=":material/smart_toy:",
+        )
+
+
+        st.page_link(
+            "views/4_Quiz.py",
+            label="Quiz",
+            icon=":material/quiz:",
+        )
+
+
+        st.page_link(
+            "views/5_Flashcards.py",
+            label="Flashcards",
+            icon=":material/style:",
+        )
+
+
+        st.page_link(
+            "views/6_Study_Plan.py",
+            label="Study Plan",
+            icon=":material/calendar_month:",
+        )
+
+
+        st.page_link(
+            "views/7_Progress.py",
+            label="Progress",
+            icon=":material/monitoring:",
+        )
+
+
+        st.divider()
+
+
+        if st.button(
+            "Sign out",
+            use_container_width=True,
+        ):
+
+            logout()
+
+            st.rerun()
