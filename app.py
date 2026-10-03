@@ -21,7 +21,11 @@ st.set_page_config(
 )
 
 RESEND_COOLDOWN_SECONDS = 60
-PASSWORD_RESET_REDIRECT_URL = "https://intellilearn-0405.streamlit.app/"
+PASSWORD_RESET_REDIRECT_URL = (
+    st.secrets["APP_URL"]
+    if "APP_URL" in st.secrets
+    else "https://intellilearn-0405.streamlit.app/"
+)
 
 
 def raw_html(html: str):
@@ -329,6 +333,7 @@ div[data-testid="stAlert"]{border-radius:14px;}
 
 login_page = st.Page(auth_page, title="IntelliLearn", icon="🎓", url_path="login")
 dashboard_page = st.Page("pages/1_Dashboard.py", title="Dashboard", icon=":material/dashboard:", url_path="dashboard")
+syllabus_page = st.Page("pages/2_My_Syllabus.py", title="My Syllabus", icon=":material/menu_book:", url_path="syllabus")
 documents_page = st.Page("pages/2_My_Documents.py", title="My Documents", icon=":material/folder:", url_path="documents")
 ask_page = st.Page("pages/3_Ask_IntelliLearn.py", title="Ask IntelliLearn", icon=":material/smart_toy:", url_path="ask")
 quiz_page = st.Page("pages/4_Quiz.py", title="Quiz", icon=":material/quiz:", url_path="quiz")
@@ -339,6 +344,7 @@ progress_page = st.Page("pages/7_Progress.py", title="Progress", icon=":material
 if is_logged_in():
     pages = [
         dashboard_page,
+        syllabus_page,
         documents_page,
         ask_page,
         quiz_page,

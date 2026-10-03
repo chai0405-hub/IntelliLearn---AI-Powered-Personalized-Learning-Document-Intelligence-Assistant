@@ -1,56 +1,24 @@
-# START HERE
+# START HERE — EXISTING INTELLILEARN DEPLOYMENT
 
-Use the files in this exact order.
+Follow this order.
 
-## A. Files you do NOT edit first
+1. **Back up your current GitHub project.**
+2. In Supabase SQL Editor, run `sql/upgrade_curriculum.sql`.
+3. Copy the files from this package into your project.
+4. Keep your own real `.streamlit/secrets.toml` — do not replace it with the example file.
+5. Add `APP_URL` to local and Streamlit Cloud secrets if it is not already present.
+6. Verify Supabase Reset Password redirect URL/template as described in `README.md`.
+7. Run locally: `streamlit run app.py`.
+8. Test in this sequence:
+   - Login
+   - My Syllabus: upload syllabus/question bank
+   - My Documents: upload and attach textbook/notes
+   - Ask IntelliLearn: test a question that is in PDF
+   - Ask IntelliLearn: test an in-syllabus question missing from PDF
+   - Click Generate Recommended Answer
+   - Generate Syllabus Unit quiz
+   - Generate flashcards
+   - Generate study plan
+9. Push to GitHub and redeploy.
 
-Keep these as provided:
-
-- `app.py`
-- `requirements.txt`
-- `.gitignore`
-- `.streamlit/config.toml`
-- `utils/*`
-- `pages/*`
-
-## B. First file to RUN, not upload
-
-Open Supabase → SQL Editor and run:
-
-`sql/setup.sql`
-
-## C. First file you CREATE locally
-
-Copy:
-
-`.streamlit/secrets.example.toml`
-
-Rename the copy to:
-
-`.streamlit/secrets.toml`
-
-Put your real Supabase URL, Supabase key and Gemini API key inside it.
-
-## D. Supabase setting you MUST change
-
-Authentication → Email Templates → Confirm signup.
-
-Make the email contain:
-
-`{{ .Token }}`
-
-This is what makes the email show a verification code instead of only a link.
-
-## E. Then run
-
-`pip install -r requirements.txt`
-
-and:
-
-`streamlit run app.py`
-
-## F. Only after local testing
-
-Push the project to GitHub and deploy it on Streamlit Community Cloud.
-
-Never upload `.streamlit/secrets.toml` to GitHub.
+Do not expose Supabase keys or Gemini API keys in screenshots or GitHub.

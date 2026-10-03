@@ -187,6 +187,7 @@ def render_sidebar():
         st.divider()
 
         st.page_link("pages/1_Dashboard.py", label="Dashboard", icon=":material/dashboard:")
+        st.page_link("pages/2_My_Syllabus.py", label="My Syllabus", icon=":material/menu_book:")
         st.page_link("pages/2_My_Documents.py", label="My Documents", icon=":material/folder:")
         st.page_link("pages/3_Ask_IntelliLearn.py", label="Ask IntelliLearn", icon=":material/smart_toy:")
         st.page_link("pages/4_Quiz.py", label="Quiz", icon=":material/quiz:")

@@ -1,133 +1,121 @@
-# IntelliLearn Starter
+# IntelliLearn — Curriculum Intelligence Edition
 
-AI-Powered Personalized Learning & Document Intelligence Assistant.
+**AI-Powered Personalized Learning & Document Intelligence Assistant**
 
-This starter includes:
+This package keeps the existing IntelliLearn features and adds the new faculty-requested workflow:
 
-- Full name + username + email + password registration
-- Email verification code using Supabase Auth
-- Username + password login
-- Secure per-user PDF storage
-- PDF text extraction with PyMuPDF
-- Gemini embeddings
-- Supabase pgvector semantic retrieval
-- RAG chat with page citations
-- AI quiz generation
-- AI flashcards
-- Personalized study planner
-- Progress analytics
-- Streamlit Community Cloud-ready structure
+- Registration, email OTP verification and username/password login
+- Forgot Password with registered-email reset link
+- Syllabus and/or Question Bank upload
+- Automatic Subject -> Unit/Module -> Topic extraction
+- Semantic curriculum-topic embeddings
+- Textbook / Notes / Reference PDF upload linked to a curriculum
+- Document-only RAG with page references
+- All-materials RAG across a curriculum
+- Syllabus-Aware question mapping
+- Safe fallback when an answer is missing from the PDF
+- **Generate Recommended Answer** using clearly labelled Syllabus-Guided AI
+- Document-grounded Quiz generation
+- Unit-wise syllabus quiz generation using attached study material
+- Document and syllabus-unit flashcards
+- Curriculum-aware study planning
+- Quiz progress analytics
 
----
-
-## 1. Requirements
-
-Install:
-
-- Python 3.11 or 3.12
-- VS Code
-- Git
-- GitHub account
-- Supabase free account
-- Google AI Studio API key
+Read `BLUEPRINT.md` for the full working cycle.
 
 ---
 
-## 2. Create the Supabase project
+## IMPORTANT — Existing deployed project
 
-1. Open https://supabase.com/
-2. Create a new project.
-3. Wait until the project is ready.
-4. Open **SQL Editor**.
-5. Copy all content from `sql/setup.sql`.
-6. Run it once.
+If your IntelliLearn is already deployed and your original Supabase tables already exist, do **not** delete them.
 
-This creates:
-- profiles
-- documents
-- document_chunks
-- quiz_attempts
-- study_plans
-- RLS policies
-- vector search function
-- private `documents` storage bucket
+### Step 1 — Run the upgrade SQL
 
----
+Open:
 
-## 3. Configure email verification CODE
+**Supabase -> SQL Editor -> New query**
 
-Supabase normally sends a confirmation link. IntelliLearn is designed for a code entry screen.
+Run:
 
-In Supabase:
+`sql/upgrade_curriculum.sql`
 
-**Authentication → Email Templates → Confirm signup**
+This adds:
 
-Replace the body with something like:
+- `curricula`
+- `curriculum_units`
+- `curriculum_topics`
+- `curriculum_questions`
+- `documents.document_type`
+- `documents.curriculum_id`
+- curriculum topic semantic search RPC
+- curriculum-wide document semantic search RPC
 
-```html
-<h2>Verify your IntelliLearn account</h2>
-<p>Your verification code is:</p>
-<h1>{{ .Token }}</h1>
-<p>Enter this code in IntelliLearn to finish registration.</p>
-```
+Your existing users, documents, quizzes and study plans remain in place.
 
-Make sure email confirmation remains enabled.
-
-The app verifies this code with `supabase.auth.verify_otp(...)`.
+For a completely new Supabase project, run `sql/setup.sql` instead.
 
 ---
 
-## 4. Get Supabase keys
+## Step 2 — Secrets
 
-Go to:
-
-**Project Settings → API**
-
-Copy:
-- Project URL
-- Publishable key (or legacy anon key)
-
-Do **NOT** use the service-role key in this app.
-
----
-
-## 5. Get Gemini API key
-
-Open Google AI Studio and create an API key.
-
-The starter currently uses:
-
-- Generation: `gemini-3.5-flash-lite`
-- Embeddings: `gemini-embedding-2`
-- Embedding size: 768
-
----
-
-## 6. Create your local secrets file
-
-Copy:
-
-`.streamlit/secrets.example.toml`
-
-to:
+Keep your real secrets only in:
 
 `.streamlit/secrets.toml`
 
-Then add your real values:
+Use this structure:
 
 ```toml
 SUPABASE_URL = "https://xxxxx.supabase.co"
 SUPABASE_KEY = "your-publishable-or-anon-key"
 GEMINI_API_KEY = "your-gemini-api-key"
+APP_URL = "https://intellilearn-0405.streamlit.app/"
 ```
 
-Never push `secrets.toml` to GitHub.
+Do **not** commit the real secrets file to GitHub.
 
 ---
 
-## 7. Install packages
+## Step 3 — Supabase email templates
 
-Open a terminal in the project folder:
+### Confirm signup OTP
+
+Supabase -> Authentication -> Email Templates -> Confirm signup
+
+Make sure the template includes:
+
+```html
+<h2>Verify your IntelliLearn account</h2>
+<p>Your verification code is:</p>
+<h1>{{ .Token }}</h1>
+```
+
+### Reset Password
+
+Supabase -> Authentication -> URL Configuration
+
+Add your Streamlit app URL, for example:
+
+```text
+https://intellilearn-0405.streamlit.app/**
+```
+
+Then Authentication -> Email Templates -> Reset Password, use a recovery link that returns the token hash to the app:
+
+```html
+<h2>Reset your IntelliLearn password</h2>
+<p>Click below to create a new password.</p>
+<p>
+  <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery">
+    Reset Password
+  </a>
+</p>
+```
+
+---
+
+## Step 4 — Install and run
+
+Python 3.11/3.12 is recommended.
 
 ```bash
 python -m venv .venv
@@ -139,143 +127,155 @@ Windows:
 .venv\Scripts\activate
 ```
 
-macOS/Linux:
-
-```bash
-source .venv/bin/activate
-```
-
-Then:
+Install:
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-## 8. Run locally
+Run:
 
 ```bash
 streamlit run app.py
 ```
 
-Open the local URL shown in the terminal.
+---
 
-Test in this order:
+# Recommended demo flow
 
-1. Register
-2. Check email
-3. Enter verification code
-4. Login with username + password
-5. Upload a text-based PDF
-6. Process it
-7. Ask a question
-8. Generate quiz
-9. Generate flashcards
-10. Create study plan
-11. View progress
+## A. Account
+
+1. Create account
+2. Verify email code
+3. Sign in
+4. Optionally test Forgot Password
+
+## B. Curriculum Intelligence
+
+Open **My Syllabus**.
+
+Upload either:
+
+- Syllabus only
+- Question Bank only
+- Both syllabus + question bank
+
+Best demo: upload both.
+
+IntelliLearn extracts the official unit/topic structure from the syllabus. If only a question bank is uploaded and no unit labels exist, the structure is explicitly marked **inferred**, not official.
+
+## C. Study material
+
+Open **My Documents**.
+
+Choose:
+
+- Textbook
+- Notes
+- Reference Material
+
+Attach it to the curriculum created above and process it.
+
+## D. Ask IntelliLearn
+
+Three modes are available:
+
+1. **Document Only** — search one selected PDF.
+2. **All My Materials** — search every study PDF attached to the curriculum.
+3. **Syllabus-Aware** — search study materials and map the question to a syllabus/question-bank topic.
+
+### If the answer exists in the PDF
+
+The app generates a source-grounded answer with source pages.
+
+### If the PDF does not contain enough information
+
+If the question strongly matches the curriculum, the app shows:
+
+**Generate Recommended Answer**
+
+Only after the student clicks it does Gemini generate a general-knowledge explanation. It is labelled:
+
+**Syllabus-Guided AI — not taken from the uploaded PDF**
+
+No fake textbook page citation is generated.
+
+### If the question is outside the curriculum
+
+The app does not automatically generate a syllabus-guided answer.
 
 ---
 
-## 9. Push to GitHub
+# Quiz behavior
 
-Create a repository, for example:
+### Document Only
 
-`intellilearn-ai`
+Quiz facts come only from the selected PDF.
 
-Then:
+### Syllabus Unit
 
-```bash
-git init
-git add .
-git commit -m "Initial IntelliLearn MVP"
-git branch -M main
-git remote add origin YOUR_GITHUB_REPOSITORY_URL
-git push -u origin main
-```
-
-Check that `.streamlit/secrets.toml` is NOT visible on GitHub.
+- Select curriculum
+- Select Unit/Module
+- Question-bank items may guide exam style/priority
+- Factual question content still comes only from the attached textbook/notes context
+- If insufficient reliable material exists, the system returns fewer questions instead of inventing facts
 
 ---
 
-## 10. Deploy to Streamlit Community Cloud
-
-1. Open https://share.streamlit.io/
-2. Sign in with GitHub.
-3. Choose **Create app**.
-4. Select your `intellilearn-ai` repository.
-5. Branch: `main`
-6. Main file: `app.py`
-7. Open **Advanced settings**.
-8. Choose Python 3.12.
-9. Paste these secrets:
-
-```toml
-SUPABASE_URL = "..."
-SUPABASE_KEY = "..."
-GEMINI_API_KEY = "..."
-```
-
-10. Deploy.
-
-You will receive a public URL similar to:
-
-`https://your-intellilearn.streamlit.app`
-
----
-
-## Important MVP limitations
-
-This starter intentionally keeps the project easy to understand for a final-year CSE team.
-
-- It supports text-based PDFs.
-- Scanned-image PDFs require OCR, which can be added later.
-- Document processing is synchronous, so use normal-sized PDFs for the demo.
-- Free APIs have usage/rate limits.
-- For a production-scale system, move long document processing to background jobs and add stronger abuse/rate-limit controls.
-
----
-
-## Architecture
+# Current technical architecture
 
 ```text
-Student
-   |
 Streamlit UI
    |
-   +-------------------+
-   |                   |
-Supabase Auth       Gemini API
-   |                   |
-Postgres            Generation
-Storage             Embeddings
-pgvector               |
-   |                   |
-   +------ RAG --------+
+   +--> Supabase Auth
+   |      - signup / OTP
+   |      - login
+   |      - forgot password
+   |
+   +--> Supabase PostgreSQL + pgvector
+   |      - curricula
+   |      - units
+   |      - topics + embeddings
+   |      - question-bank questions
+   |      - documents + chunks + embeddings
+   |      - quizzes / study plans
+   |
+   +--> Supabase Storage
+   |      - syllabus PDFs
+   |      - question-bank PDFs
+   |      - textbook / notes PDFs
+   |
+   +--> Gemini API
+          - curriculum extraction
+          - embeddings
+          - RAG answers
+          - context-sufficiency check
+          - recommended syllabus-guided answer
+          - quiz / flashcards / study plan
 ```
 
-RAG flow:
+---
 
-```text
-PDF Upload
-  ↓
-PyMuPDF
-  ↓
-Text Chunks
-  ↓
-Gemini Embeddings
-  ↓
-Supabase pgvector
-  ↓
-Student Question
-  ↓
-Question Embedding
-  ↓
-Semantic Search
-  ↓
-Relevant Chunks
-  ↓
-Gemini Generation
-  ↓
-Answer + Page Sources
+# Important limitations
+
+- Text-based PDFs work directly. Image-only scanned PDFs require OCR, which is not included yet.
+- Semantic syllabus matching uses a configurable similarity threshold and should be evaluated with your university syllabus examples.
+- Gemini and Supabase free tiers have rate/usage limits.
+- This is a final-year-project implementation, not a production LMS.
+- AI fallback answers are deliberately labelled separately from document-grounded answers.
+
+---
+
+# Deployment
+
+After testing locally:
+
+```bash
+git add .
+git commit -m "Add curriculum intelligence and syllabus-aware RAG"
+git push
 ```
+
+Streamlit Community Cloud should redeploy automatically.
+
+If it does not, open your Streamlit app dashboard and reboot/redeploy the app.
