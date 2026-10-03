@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from utils.auth import require_auth, render_sidebar
+from utils.ui import apply_app_style, page_navigation
 from utils.db import list_curricula, list_documents, get_quiz_attempts
 
 
@@ -11,10 +12,12 @@ st.set_page_config(
     layout="wide",
 )
 require_auth()
+apply_app_style()
 render_sidebar()
 
 st.title(f"Welcome, {st.session_state.get('full_name', 'Student')}")
 st.caption("Your personalized learning dashboard")
+page_navigation("dashboard")
 
 curricula = list_curricula()
 documents = list_documents()

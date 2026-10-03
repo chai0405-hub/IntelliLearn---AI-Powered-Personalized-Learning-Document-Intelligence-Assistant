@@ -1,13 +1,17 @@
 import pandas as pd
 import streamlit as st
 from utils.auth import require_auth, render_sidebar
+from utils.ui import apply_app_style, page_navigation
 from utils.db import get_quiz_attempts
 
 st.set_page_config(page_title="Progress | IntelliLearn", page_icon="📈", layout="wide")
 require_auth()
+apply_app_style()
 render_sidebar()
 
 st.title("Learning Progress")
+st.caption("Track quiz performance, topic-level strengths and revision priorities.")
+page_navigation("progress")
 
 attempts = get_quiz_attempts()
 

@@ -2,6 +2,7 @@ from datetime import date, timedelta
 import streamlit as st
 
 from utils.auth import require_auth, render_sidebar
+from utils.ui import apply_app_style, page_navigation
 from utils.db import (
     get_quiz_attempts,
     list_curricula,
@@ -19,10 +20,12 @@ st.set_page_config(
     layout="wide",
 )
 require_auth()
+apply_app_style()
 render_sidebar()
 
 st.title("Personalized Study Planner")
 st.caption("Build a realistic plan using quiz performance and, when available, your uploaded curriculum map.")
+page_navigation("study_plan")
 
 attempts = get_quiz_attempts()
 weak_summary = "No quiz data is available yet."

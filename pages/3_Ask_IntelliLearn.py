@@ -1,6 +1,7 @@
 import streamlit as st
 
 from utils.auth import require_auth, render_sidebar
+from utils.ui import apply_app_style, page_navigation
 from utils.db import list_curricula, list_documents
 from utils.rag import answer_intelligently
 from utils.curriculum import generate_syllabus_guided_answer
@@ -12,12 +13,14 @@ st.set_page_config(
     layout="wide",
 )
 require_auth()
+apply_app_style()
 render_sidebar()
 
 st.title("Ask IntelliLearn")
 st.caption(
     "PDF-first answers with page sources. If the material is incomplete, IntelliLearn can offer a clearly labelled syllabus-guided answer."
 )
+page_navigation("ask")
 
 documents = list_documents()
 curricula = list_curricula()

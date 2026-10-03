@@ -1,6 +1,7 @@
 import streamlit as st
 
 from utils.auth import require_auth, render_sidebar
+from utils.ui import apply_app_style, page_navigation
 from utils.pdf_utils import extract_pages
 from utils.curriculum import analyze_curriculum_sources, embed_topic_rows
 from utils.gemini_client import embed_texts
@@ -25,12 +26,14 @@ st.set_page_config(
     layout="wide",
 )
 require_auth()
+apply_app_style()
 render_sidebar()
 
 st.title("My Syllabus")
 st.caption(
-    "Step 1: upload a syllabus, a question bank, or both. IntelliLearn builds a curriculum map before you add textbooks/notes."
+    "Upload a syllabus, a question bank, or both. IntelliLearn builds a curriculum map before you add textbooks/notes."
 )
+page_navigation("syllabus")
 
 with st.expander("Create a new curriculum", expanded=not bool(list_curricula())):
     st.markdown("### 1. Course details")

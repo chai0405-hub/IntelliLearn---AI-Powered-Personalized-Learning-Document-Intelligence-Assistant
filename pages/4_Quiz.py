@@ -1,6 +1,7 @@
 import streamlit as st
 
 from utils.auth import require_auth, render_sidebar
+from utils.ui import apply_app_style, page_navigation
 from utils.db import (
     list_curricula,
     list_curriculum_questions,
@@ -19,12 +20,14 @@ st.set_page_config(
     layout="wide",
 )
 require_auth()
+apply_app_style()
 render_sidebar()
 
 st.title("AI Quiz Generator")
 st.caption(
     "Generate document-grounded MCQs from a selected PDF or from an entire syllabus unit using your attached study materials."
 )
+page_navigation("quiz")
 
 documents = list_documents()
 curricula = list_curricula()

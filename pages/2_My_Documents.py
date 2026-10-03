@@ -1,6 +1,7 @@
 import streamlit as st
 
 from utils.auth import require_auth, render_sidebar
+from utils.ui import apply_app_style, page_navigation
 from utils.db import (
     create_document,
     insert_document_chunks,
@@ -18,12 +19,14 @@ st.set_page_config(
     layout="wide",
 )
 require_auth()
+apply_app_style()
 render_sidebar()
 
 st.title("My Documents")
 st.caption(
-    "Step 2: upload textbooks, notes or reference PDFs. Attach them to a curriculum when available."
+    "Upload textbooks, notes or reference PDFs and attach them to a curriculum when available."
 )
+page_navigation("documents")
 
 curricula = list_curricula()
 curriculum_by_label = {

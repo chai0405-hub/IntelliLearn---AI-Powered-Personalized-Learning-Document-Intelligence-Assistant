@@ -174,18 +174,11 @@ def logout():
 
 
 def render_sidebar():
+    """Render the clean IntelliLearn navigation sidebar."""
     with st.sidebar:
         st.markdown("## IntelliLearn")
 
-        full_name = st.session_state.get("full_name", "")
-        username = st.session_state.get("username", "student")
-
-        if full_name:
-            st.caption(f"Welcome, **{full_name}**")
-
-        st.caption(f"Signed in as **{username}**")
-        st.divider()
-
+        # Navigation starts immediately below the brand.
         st.page_link("pages/1_Dashboard.py", label="Dashboard", icon=":material/dashboard:")
         st.page_link("pages/2_My_Syllabus.py", label="My Syllabus", icon=":material/menu_book:")
         st.page_link("pages/2_My_Documents.py", label="My Documents", icon=":material/folder:")

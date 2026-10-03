@@ -1,6 +1,7 @@
 import streamlit as st
 
 from utils.auth import require_auth, render_sidebar
+from utils.ui import apply_app_style, page_navigation
 from utils.db import (
     list_curricula,
     list_curriculum_topics,
@@ -17,10 +18,12 @@ st.set_page_config(
     layout="wide",
 )
 require_auth()
+apply_app_style()
 render_sidebar()
 
 st.title("AI Flashcards")
 st.caption("Generate revision cards from one PDF or from study materials linked to a syllabus unit.")
+page_navigation("flashcards")
 
 documents = list_documents()
 curricula = list_curricula()
